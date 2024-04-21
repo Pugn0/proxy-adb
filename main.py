@@ -14,18 +14,6 @@ def toggle_airplane_mode(enable):
         print("Erro ao tentar mudar o estado do modo avião:", e)
         return None
 
-def proxyTime():
-    while True:
-        try:
-            print(toggle_airplane_mode(True))
-            time.sleep(10)  # Espera 10 segundos com o modo avião ativado
-            print(toggle_airplane_mode(False))
-            time.sleep(60)  # Espera 60 segundos com o modo avião desativado
-        except KeyboardInterrupt:
-            print("Script interrompido pelo usuário.")
-            break
-
-
 def execute_adb_command(command):
     try:
         result = subprocess.run(['adb', 'shell'] + command, capture_output=True, text=True, check=True)
@@ -55,9 +43,9 @@ def get_public_ip():
     # Solicita o IPv4
     ipv4 = execute_adb_command(['curl', '-4', 'https://ifconfig.me'])
     if ipv4:
-        print(f"Endereço IP Público IPv4: {ipv4}")
+        return f"Endereço IP Público IPv4: {ipv4}"
     else:
-        print("Não foi possível obter o endereço IP público IPv4.")
+        return "Não foi possível obter o endereço IP público IPv4."
     
     # Solicita o IPv6
     ipv6 = execute_adb_command(['curl', '-6', 'https://ifconfig.me'])
@@ -152,34 +140,67 @@ def is_root_enabled_via_adb():
         return False
 
 def read_or_save_android_id(filename="android_id.txt"):
-    """Lê ou salva o Android ID em um arquivo."""
+    """Lê ou salva o Android ID em um arquivo se não estiver presente e retorna o Android ID e o status de root."""
+    android_id = get_android_id()  # Obtém o Android ID atual
+    if android_id is None:
+        print("Falha ao obter o Android ID. Nada foi salvo.")
+        return None, False
+
+    # Inicializa uma variável para armazenar os IDs existentes e status de root
+    existing_ids = {}
+    
+    # Verifica se o arquivo existe e lê os IDs existentes
     if os.path.exists(filename):
-        # Se o arquivo existir, leia o Android ID do arquivo
         with open(filename, 'r') as file:
-            android_id = file.read().strip()
-            print(f"Android ID lido do arquivo: {android_id}")
+            for line in file:
+                if '|' in line:
+                    id_part, root_part = line.strip().split('|')
+                    existing_ids[id_part] = root_part == 'root=True'
+
+    # Verifica se o Android ID atual já está registrado
+    if android_id in existing_ids:
+        return android_id, existing_ids[android_id]  # Retorna o Android ID e o status de root
     else:
-        # Se o arquivo não existir, obtenha o Android ID e salve-o
-        android_id = get_android_id()
-        if android_id:
-            with open(filename, 'w') as file:
-                file.write(android_id)
-            print(f"Android ID obtido e salvo no arquivo: {android_id}")
-        else:
-            print("Falha ao obter o Android ID. Nada foi salvo.")
+        # Android ID não registrado, adiciona ao arquivo
+        root_status = check_for_root_artifacts()  # Verifica se o dispositivo está rootado
+        with open(filename, 'a') as file:  # Abre o arquivo em modo append
+            file.write(f"{android_id}|root={root_status}\n")
+            print(f"Novo Android ID adicionado ao arquivo: {android_id}")
+        return android_id, root_status  # Retorna o Android ID e o status de root
+
+
 
 def main():
-    read_or_save_android_id()
+    android_id = get_android_id()
+    if android_id is None:
+        print("Não foi possível obter o Android ID.")
+        return False
+
+    # Processa o Android ID independentemente de ter sido visto antes
+    android_id, root_status = read_or_save_android_id()
+    
+    if root_status:
+        if is_root_enabled_via_adb():
+            try:
+                toggle_airplane_mode(True)  # Ativa modo avião
+                time.sleep(5)  # Espera 10 segundos com o modo avião ativado
+                toggle_airplane_mode(False)  # Desativa modo avião
+                time.sleep(10)
+                print(f"[V] - Enraizado [V] - Root está habilitado - Android ID: {android_id} - {get_public_ip()}")
+            except Exception as e:
+                print(f"Erro ao manipular o modo avião: {e}")
+        else:
+            print(f"[V] - Enraizado [X] - Root habilitado - Android ID: {android_id}")
+    else:
+        print(f"[X] - Enraizado - Android ID: {android_id}")
+    return True
 
 if __name__ == "__main__":
-    main()
-exit()
-if get_android_id != None:
-    if check_for_root_artifacts():
-        print("root")
-        if is_root_enabled_via_adb():
-            print("Root está habilitado")
-        else:
-            print("Root não está habilitado")
-    else:
-        print("no root")
+    while True:
+        try:
+            if not main():
+                break  # Encerra o loop se main retornar False
+            time.sleep(10)  # Intervalo entre as verificações
+        except KeyboardInterrupt:
+            print("Script interrompido pelo usuário.")
+            break
