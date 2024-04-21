@@ -1,30 +1,29 @@
 import subprocess
 import time
-import re
+import os
 
 def toggle_airplane_mode(enable):
+    """ Função para ativar ou desativar o modo avião no dispositivo Android. """
     state = '1' if enable else '0'
+    command = f"adb shell su -c 'settings put global airplane_mode_on {state}; am broadcast -a android.intent.action.AIRPLANE_MODE --ez state {enable}'"
     try:
-        # Mudar apenas a configuração do modo avião
-        subprocess.run([
-            'adb', 'shell', 'su', '-c', 
-            f'settings put global airplane_mode_on {state}'
-        ], check=True)
-        print(f"Modo avião {'ativado' if enable else 'desativado'}.")
+        # Executando o comando silenciosamente
+        subprocess.run(command, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return True if enable else False 
     except subprocess.CalledProcessError as e:
-        print("Erro ao executar o comando ADB:", e)
+        print("Erro ao tentar mudar o estado do modo avião:", e)
+        return None
 
-def timeMain():
+def proxyTime():
     while True:
         try:
-            toggle_airplane_mode(True)
-            time.sleep(10)
-            toggle_airplane_mode(False)
-            time.sleep(10)
+            print(toggle_airplane_mode(True))
+            time.sleep(10)  # Espera 10 segundos com o modo avião ativado
+            print(toggle_airplane_mode(False))
+            time.sleep(60)  # Espera 60 segundos com o modo avião desativado
         except KeyboardInterrupt:
             print("Script interrompido pelo usuário.")
             break
-
 
 
 def execute_adb_command(command):
@@ -33,6 +32,16 @@ def execute_adb_command(command):
         return result.stdout.strip()
     except subprocess.CalledProcessError as e:
         print("Erro ao executar o comando ADB:", e)
+        return None
+    
+def get_android_id():
+    """Obtém o Android ID do dispositivo conectado."""
+    command = ["settings", "get", "secure", "android_id"]
+    android_id = execute_adb_command(command)
+    if android_id:
+        return android_id
+    else:
+        print("Não foi possível obter o Android ID")
         return None
 
 def get_android_version():
@@ -103,7 +112,6 @@ def check_for_root_artifacts():
         "ls /data/dalvik-cache/*com.kingroot.kinguser*",
         "ls /data/dalvik-cache/*com.kingouser.com*",
         "ls /sbin/supersu",
-        "ls /sbin/su",
         "ls /sbin/.core/img",
         "ls /sbin/.core/su",
         "ls /system/sbin/su",
@@ -116,7 +124,6 @@ def check_for_root_artifacts():
         "ls /dev/su"
     ]
 
-    
     rooted = False
 
     for command in root_checks:
@@ -128,12 +135,7 @@ def check_for_root_artifacts():
         except subprocess.CalledProcessError as e:
             print("Error executing command:", e)
 
-    if rooted:
-        print("Root artifacts detected. Device is likely rooted.")
-    else:
-        print("No root artifacts detected. Device is likely not rooted.")
-
-
+    return rooted
 
 def is_root_enabled_via_adb():
     try:
@@ -149,8 +151,35 @@ def is_root_enabled_via_adb():
         print(f"Erro ao executar o comando ADB: {e}")
         return False
 
-# Exemplo de como usar a função
-if is_root_enabled_via_adb():
-    print("Root está habilitado no dispositivo.")
-else:
-    print("Root não está habilitado ou não foi possível verificar.")
+def read_or_save_android_id(filename="android_id.txt"):
+    """Lê ou salva o Android ID em um arquivo."""
+    if os.path.exists(filename):
+        # Se o arquivo existir, leia o Android ID do arquivo
+        with open(filename, 'r') as file:
+            android_id = file.read().strip()
+            print(f"Android ID lido do arquivo: {android_id}")
+    else:
+        # Se o arquivo não existir, obtenha o Android ID e salve-o
+        android_id = get_android_id()
+        if android_id:
+            with open(filename, 'w') as file:
+                file.write(android_id)
+            print(f"Android ID obtido e salvo no arquivo: {android_id}")
+        else:
+            print("Falha ao obter o Android ID. Nada foi salvo.")
+
+def main():
+    read_or_save_android_id()
+
+if __name__ == "__main__":
+    main()
+exit()
+if get_android_id != None:
+    if check_for_root_artifacts():
+        print("root")
+        if is_root_enabled_via_adb():
+            print("Root está habilitado")
+        else:
+            print("Root não está habilitado")
+    else:
+        print("no root")
