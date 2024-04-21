@@ -57,9 +57,100 @@ def get_public_ip():
     else:
         print("Não foi possível obter o endereço IP público IPv6.")
 
-def main():
+def info():
     get_android_version()
     get_public_ip()
 
-if __name__ == "__main__":
-    main()
+def check_for_root_artifacts():
+    # Lista de comandos que checam a existência de binários/diretórios comuns de root
+    root_checks = [
+        "ls /system/xbin/su",
+        "ls /system/bin/su",
+        "ls /sbin/su",
+        "ls /system/su",
+        "ls /system/bin/.ext",
+        "ls /system/xbin/busybox",
+        "ls /system/app/Superuser.apk",
+        "ls /data/local/xbin/su",
+        "ls /data/local/bin/su",
+        "ls /data/local/su",
+        "ls /system/app/SuperSU",
+        "ls /su/bin/su",
+        "ls /su/xbin/su",
+        "ls /system/usr/we-need-root/su-backup",
+        "ls /system/xbin/daemonsu",
+        "ls /system/etc/init.d/99SuperSUDaemon",
+        "ls /system/bin/.ext/.su",
+        "ls /system/etc/.has_su_daemon",
+        "ls /system/etc/.installed_su_daemon",
+        "ls /dev/com.koushikdutta.superuser.daemon/",
+        "ls /system/app/Kinguser.apk",
+        "ls /system/app/Kingoroot.apk",
+        "ls /system/app/Kingo SuperUser.apk",
+        "ls /system/app/KingoRoot.apk",
+        "ls /data/app/eu.chainfire.supersu-*",
+        "ls /data/app/eu.chainfire.supersu*/",
+        "ls /data/app/com.kingouser.com/",
+        "ls /data/app/com.kingroot.kinguser/",
+        "ls /data/app/com.kingroot.RushRoot/",
+        "ls /data/app/com.kingroot.kinguser/*",
+        "ls /data/app/com.noshufou.android.su/",
+        "ls /data/app/com.noshufou.android.su-*/",
+        "ls /data/app/com.thirdparty.superuser/",
+        "ls /data/app/com.yellowes.su/",
+        "ls /data/dalvik-cache/*com.koushikdutta.superuser*",
+        "ls /data/dalvik-cache/*com.thirdparty.superuser*",
+        "ls /data/dalvik-cache/*com.kingroot.kinguser*",
+        "ls /data/dalvik-cache/*com.kingouser.com*",
+        "ls /sbin/supersu",
+        "ls /sbin/su",
+        "ls /sbin/.core/img",
+        "ls /sbin/.core/su",
+        "ls /system/sbin/su",
+        "ls /system/bin/failsafe/su",
+        "ls /system/bin/cpufreq/su",
+        "ls /system/sd/xbin/su",
+        "ls /system/usr/we-need-root/",
+        "ls /cache/su.bin",
+        "ls /data/su.bin",
+        "ls /dev/su"
+    ]
+
+    
+    rooted = False
+
+    for command in root_checks:
+        try:
+            result = subprocess.run(['adb', 'shell', command], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            if result.stdout and 'No such file or directory' not in result.stdout:
+                print(f"Root artifact found: {command}")
+                rooted = True
+        except subprocess.CalledProcessError as e:
+            print("Error executing command:", e)
+
+    if rooted:
+        print("Root artifacts detected. Device is likely rooted.")
+    else:
+        print("No root artifacts detected. Device is likely not rooted.")
+
+
+
+def is_root_enabled_via_adb():
+    try:
+        # Tentando executar um comando que requer privilégios de root
+        result = subprocess.run(['adb', 'shell', 'su', '-c', 'id'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+        # Verifica se o comando foi bem sucedido (código de saída 0) e se a saída contém 'uid=0(root)'
+        if result.returncode == 0 and 'uid=0(root)' in result.stdout:
+            return True
+        else:
+            return False
+    except Exception as e:
+        print(f"Erro ao executar o comando ADB: {e}")
+        return False
+
+# Exemplo de como usar a função
+if is_root_enabled_via_adb():
+    print("Root está habilitado no dispositivo.")
+else:
+    print("Root não está habilitado ou não foi possível verificar.")
