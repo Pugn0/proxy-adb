@@ -43,7 +43,7 @@ def get_public_ip():
     # Solicita o IPv4
     ipv4 = execute_adb_command(['curl', '-4', 'https://ifconfig.me'])
     if ipv4:
-        return f"Endereço IP Público IPv4: {ipv4}"
+        return f"Endereço IPv4: {ipv4}"
     else:
         return "Não foi possível obter o endereço IP público IPv4."
     

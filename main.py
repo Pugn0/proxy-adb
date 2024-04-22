@@ -1,5 +1,5 @@
 import api
-
+import css
 def main():
     android_id = api.get_android_id()
     if android_id is None:
@@ -16,13 +16,13 @@ def main():
                 api.time.sleep(5)  # Espera 10 segundos com o modo avião ativado
                 api.toggle_airplane_mode(False)  # Desativa modo avião
                 api.time.sleep(10)
-                print(f"[V] - Enraizado [V] - Root está habilitado - Android ID: {android_id} - {api.get_public_ip()}")
+                print(f"{css.icon("𖦿")} Android ID: {android_id} {css.icon("v")} {css.icon("-")} Enraizado {css.icon("v")} {css.icon("-")} Root está habilitado {css.icon("-")} {css.icon("v")} {api.get_public_ip()}")
             except Exception as e:
                 print(f"Erro ao manipular o modo avião: {e}")
         else:
-            print(f"[V] - Enraizado [X] - Root habilitado - Android ID: {android_id}")
+            print(f"{css.icon("𖦿")} Android ID: {android_id} {css.icon("v")} {css.icon("-")} Enraizado {css.icon("x")} {css.icon("-")} Root habilitado {css.icon("-")} {css.icon("!")} {api.get_public_ip()}")
     else:
-        print(f"[X] - Enraizado - Android ID: {android_id}")
+        print(f"{css.icon("𖦿")} Android ID: {android_id} {css.icon("x")} {css.icon("-")} Enraizado  {css.icon("-")} {css.icon("!")} {api.get_public_ip()}")
     return True
 
 if __name__ == "__main__":
